@@ -1,0 +1,109 @@
+version: '2.4' # Cant use 3+ because it does not support resource-limits without swarm-mode: https://github.com/docker/compose/issues/4513
+
+services:
+
+  node:
+    mem_limit: ${SHIPY_STACK_SERVICE_1_MEMORY_LIMIT:-1000000000}
+    depends_on:
+      - nginx
+    build:
+      context: ./
+      dockerfile: Dockerfile.node
+      args:
+        VERSION: ${SHIPY_STACK_SERVICE_1_VERSION:-latest}
+    restart: always
+    expose:
+      - "8080"
+    labels:
+      # shipy labels must be present on all services
+      # shipy.stack.id must be equal the name of the repository
+      - "shipy.stack.id=${COMPOSE_PROJECT_NAME:?err}"
+      - "shipy.stack.type=${SHIPY_STACK_TYPE:?err}"
+      - "shipy.stack.name=${SHIPY_STACK_NAME:?err}"
+      - "shipy.stack.domains=${SHIPY_STACK_DOMAINS:?err}"
+      - "shipy.stack.updated=${SHIPY_STACK_UPDATED:?err}"
+      - "shipy.stack.json=${SHIPY_STACK_JSON:?err}"
+      - "shipy.stack.service.number=1"
+      - "shipy.stack.service.name=node"
+      - "shipy.stack.service.version=${SHIPY_STACK_SERVICE_1_VERSION:-latest}"
+    networks:
+      nginx:
+        aliases:
+         # alias with pattern PROJECTNAME_SERVICENAME must be present on all networks
+         - ${COMPOSE_PROJECT_NAME:?err}_node
+      database:
+        aliases:
+         # alias with pattern PROJECTNAME_SERVICENAME must be present on all networks
+         - ${COMPOSE_PROJECT_NAME:?err}_node
+    env_file:
+      - .env
+    # environment overrides env_files vars
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+      #start_period: 5s
+    command:
+      - start
+
+  nginx:
+    mem_limit: ${SHIPY_STACK_SERVICE_2_MEMORY_LIMIT:-1000000000}
+    networks:
+      reverseproxy:
+        aliases:
+         # alias with pattern PROJECTNAME_SERVICENAME must be present on all networks
+         - ${COMPOSE_PROJECT_NAME:?err}_nginx
+      nginx:
+        aliases:
+         # alias with pattern PROJECTNAME_SERVICENAME must be present on all networks
+         - ${COMPOSE_PROJECT_NAME:?err}_nginx
+    volumes:
+      - nginxconf:/etc/nginx
+    build:
+      context: ./
+      dockerfile: Dockerfile.nginx
+      args:
+        VERSION: ${SHIPY_STACK_SERVICE_2_VERSION:-stable-alpine}
+    restart: always
+    expose:
+      - "80"
+    env_file:
+      - .env
+    labels:
+      # shipy labels must be present on all services
+      # shipy.stack.id must be equal the name of the repository
+      - "shipy.stack.id=${COMPOSE_PROJECT_NAME:?err}"
+      - "shipy.stack.type=${SHIPY_STACK_TYPE:?err}"
+      - "shipy.stack.name=${SHIPY_STACK_NAME:?err}"
+      - "shipy.stack.domains=${SHIPY_STACK_DOMAINS:?err}"
+      - "shipy.stack.updated=${SHIPY_STACK_UPDATED:?err}"
+      - "shipy.stack.json=${SHIPY_STACK_JSON:?err}"
+      - "shipy.stack.service.number=2"
+      - "shipy.stack.service.name=nginx"
+      - "shipy.stack.service.version=${SHIPY_STACK_SERVICE_2_VERSION:-stable-alpine}"
+      # https://docs.traefik.io/configuration/backends/docker/
+      - "traefik.enable=true"
+      - "traefik.backend=${COMPOSE_PROJECT_NAME:?err}_nginx"
+      - "traefik.backend.loadbalancer.stickiness=true"
+      - "traefik.docker.network=reverseproxy"
+      #- "traefik.frontend.passHostHeader=true"
+      - "traefik.${COMPOSE_PROJECT_NAME:?err}_nginx.frontend.passHostHeader=true"
+      - "traefik.${COMPOSE_PROJECT_NAME:?err}_nginx.port=80"
+      - "traefik.${COMPOSE_PROJECT_NAME:?err}_nginx.frontend.rule=Host:${SHIPY_STACK_DOMAINS:?err}"
+    #healthcheck:
+      #disable: true # if marked as unhealty reverseproxy will stop. 
+
+networks:
+  nginx:
+  reverseproxy:
+    external: true
+    name: reverseproxy
+  database:
+    external: true
+    name: database # named networks will not get removed on container update/removal
+
+volumes:
+  nginxconf:

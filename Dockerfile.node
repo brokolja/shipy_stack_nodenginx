@@ -1,0 +1,20 @@
+# Keep common instructions at the top of the Dockerfile to utilize the cache.
+ARG VERSION=8.10
+FROM node:$VERSION
+
+WORKDIR /usr/src/app
+
+COPY app/package.json app/package-lock.json* /usr/src/app/
+
+RUN cd /usr/src/app/ && npm install --production
+
+COPY app/ /usr/src/app/
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+ENTRYPOINT ["npm", "run"]
+
+CMD ["start"]

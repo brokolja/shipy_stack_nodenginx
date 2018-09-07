@@ -1,0 +1,11 @@
+# Keep common instructions at the top of the Dockerfile to utilize the cache.
+# The ARG instruction lets Dockerfile authors define values that users can set at build-time using the --build-arg flag. This flag allows you to pass the build-time variables that are accessed like regular environment variables in the RUN instruction of the Dockerfile. Also, these values don’t persist in the intermediate or final images like ENV values do.
+ARG VERSION=alpine
+FROM nginx:$VERSION
+#COPY static /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /tmp/nginx_proxy_cache_myapp
+RUN apk add --no-cache curl
+#WORKDIR /var/www/html/
+HEALTHCHECK --interval=10s --timeout=10s CMD nginx -t
+CMD ["nginx", "-g", "daemon off;"]
