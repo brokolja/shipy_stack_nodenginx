@@ -2,7 +2,12 @@
 ARG VERSION=8.10
 FROM node:$VERSION
 
+RUN mkdir -p /usr/src/app
+RUN chown node:node /usr/src/app
+
 WORKDIR /usr/src/app
+
+USER node
 
 COPY app/package.json app/package-lock.json* /usr/src/app/
 
