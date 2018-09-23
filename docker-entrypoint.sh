@@ -1,13 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-#if [ "$(id -u)" = '0' ]; then
+if [ "$(id -u)" = '0' ]; then
   user='node'
   group='node'
-#else
-#  user="$(id -u)"
-#  group="$(id -g)"
-#fi
+else
+  user="$(id -u)"
+  group="$(id -g)"
+fi
 
 chown -fR "$user:$group" /usr/src/app || true
 
