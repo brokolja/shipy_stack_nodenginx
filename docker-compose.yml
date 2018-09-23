@@ -3,6 +3,7 @@ version: '2.4' # Cant use 3+ because it does not support resource-limits without
 services:
 
   node:
+    user: node
     mem_limit: ${SHIPY_STACK_SERVICE_1_MEMORY_LIMIT:-1000000000}
     depends_on:
       - nginx
