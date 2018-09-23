@@ -62,6 +62,7 @@ ENV PORT=8080
 EXPOSE 8080
 
 COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
 
